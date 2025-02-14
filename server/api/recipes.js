@@ -51,8 +51,8 @@ router.get("/user/:id", isLoggedIn, async (req, res, next) => {
 // Create a Recipe
 router.post("/recipe", isLoggedIn, async (req, res, next) => {
   try {
-    const { name, description } = req.body;
-    const response = await createRecipe(name, description);
+    const { name, description, categoryId } = req.body;
+    const response = await createRecipe(name, description, categoryId);
     res.status(201).send(response);
   } catch (error) {
     next(error);

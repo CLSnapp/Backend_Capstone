@@ -19,8 +19,9 @@ CREATE TABLE "Recipes" (
     "name" TEXT NOT NULL,
     "description" TEXT NOT NULL,
     "categoryId" INTEGER NOT NULL,
+    "creatorId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "Recipes_pkey" PRIMARY KEY ("id")
 );
@@ -40,7 +41,7 @@ CREATE TABLE "Comments" (
     "userId" TEXT NOT NULL,
     "reviewId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "Comments_pkey" PRIMARY KEY ("id")
 );
@@ -53,6 +54,7 @@ CREATE TABLE "Reviews" (
     "userId" TEXT NOT NULL,
     "recipeId" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3),
 
     CONSTRAINT "Reviews_pkey" PRIMARY KEY ("id")
 );

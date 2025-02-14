@@ -2,7 +2,6 @@ const db = require("../db/index");
 const { faker } = require("@faker-js/faker");
 const { prisma } = require("../db/common");
 require("dotenv").config();
-const uuid = require("uuid");
 
 async function seed() {
   console.log("Seeding the database.");
@@ -25,17 +24,19 @@ async function seed() {
     const userIds = users.map((user) => user.id);
 
     // Add 20 Recipes.
-    await Promise.all(
+    const recipes = await Promise.all(
       [...Array(20)].map((_, i) =>
         prisma.recipes.create({
           data: {
             name: faker.food.dish(),
             description: faker.food.description(),
             categoryId: (i % 5) + 1,
+            creatorId: userIds[Math.floor(Math.random() * userIds.length)],
           },
         })
       )
     );
+    const recipeIds = recipes.map((recipe) => recipe.id);
 
     // Add 5 Categories.
     await Promise.all(

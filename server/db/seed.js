@@ -7,11 +7,13 @@ const uuid = require("uuid");
 async function seed() {
   console.log("Seeding the database.");
   try {
-    await db.query("DROP TABLE IF EXISTS users, items, comments, reviews;");
+    await db.query(
+      "DROP TABLE IF EXISTS users, items, comments, reviews, ingredients, units, recipeingredient;"
+    );
 
-    // Add 5 Users, collect their ID's.
+    // Add Users, collect their ID's.
     const users = await Promise.all(
-      [...Array(5)].map(() =>
+      [...Array(100)].map(() =>
         prisma.users.create({
           data: {
             firstName: faker.person.firstName(),
@@ -24,25 +26,9 @@ async function seed() {
     );
     const userIds = users.map((user) => user.id);
 
-    // Add 20 Recipes.
-    
-    const recipes = await Promise.all(
-      [...Array(20)].map((_, i) =>
-        prisma.recipes.create({
-          data: {
-            name: faker.food.dish(),
-            description: faker.food.description(),
-            instructions: faker.food.description(),
-            categoryId: (i % 5) + 1,
-            creatorId: userIds[Math.floor(Math.random() * userIds.length)],
-          },
-        })
-      )
-    );
-    const recipeId = recipes.map((recipe) => recipe.id);
-    // Add 5 Categories.
-    await Promise.all(
-      [...Array(5)].map(() =>
+    // Add Categories, collect their ID's.
+    const categories = await Promise.all(
+      [...Array(50)].map(() =>
         prisma.categories.create({
           data: {
             name: faker.food.ethnicCategory(),
@@ -50,33 +36,161 @@ async function seed() {
         })
       )
     );
+    const categoryIds = categories.map((category) => category.id);
 
-    // Add 10 Reviews, collect their ID's.
-    // const reviews = await Promise.all(
-    //   [...Array(10)].map((_, i) =>
-    //     prisma.reviews.create({
-    //       data: {
-    //         review: faker.lorem.paragraph(2),
-    //         rating: faker.number.int(5),
-    //         userId: userIds[Math.floor(Math.random() * userIds.length)],
-    //         recipeId: (i % 5) + 1,
-    //       },
-    //     })
-    //   )
-    // );
-    // const reviewIds = reviews.map((review) => review.id);
+    // Add Ingredients
+    const ingredients = await Promise.all(
+      [...Array(100)].map(() =>
+        prisma.ingredients.create({
+          data: {
+            name: faker.food.ingredient(),
+          },
+        })
+      )
+    );
+    const ingredientIds = ingredients.map((ingredient) => ingredient.id);
 
-    // // Add 10 Comments.
-    // await Promise.all(
-    //   [...Array(10)].map((_, i) =>
-    //     prisma.comments.create({
-    //       data: {
-    //         comment: faker.lorem.paragraph(2),
-    //         userId: userIds[Math.floor(Math.random() * userIds.length)],
-    //         reviewId: reviewIds[Math.floor(Math.random() * reviewIds.length)],
-    //       },
-    //     })
-    //   )
+    // Add Units
+    const units = await Promise.all(
+      [
+        "grams",
+        "gallons",
+        "quarts",
+        "pint",
+        "liters",
+        "pounds",
+        "cups",
+        "tablespoons",
+        "teaspoons",
+        "ml",
+        "oz",
+        "kg",
+        "mg",
+      ].map((unitName) =>
+        prisma.units.create({
+          data: {
+            name: unitName,
+          },
+        })
+      )
+    );
+    const unitIds = units.map((unit) => unit.id);
+
+    // Add Recipes, collect their ID's.
+    const recipes = await Promise.all(
+      [...Array(200)].map((_, i) =>
+        prisma.recipes.create({
+          data: {
+            name: faker.food.dish(),
+            description: faker.food.description(),
+            instructions: faker.food.description(),
+            categoryId: categoryIds[i % categoryIds.length],
+            creatorId: userIds[Math.floor(Math.random() * userIds.length)],
+          },
+        })
+      )
+    );
+    const recipeIds = recipes.map((recipe) => recipe.id);
+
+    // Add Reviews, collect their ID's.
+    const reviews = await Promise.all(
+      [...Array(100)].map(async (_, i) => {
+        const userId = userIds[Math.floor(Math.random() * userIds.length)];
+        const recipeId =
+          recipeIds[Math.floor(Math.random() * recipeIds.length)];
+
+        // Check if the user has already reviewed this recipe
+        const existingReview = await prisma.reviews.findFirst({
+          where: {
+            userId: userId,
+            recipeId: recipeId,
+          },
+        });
+
+        if (!existingReview) {
+          // If no existing review, create the new review
+          return prisma.reviews.create({
+            data: {
+              review: faker.lorem.paragraph(2),
+              rating: faker.number.int(5),
+              userId: userId,
+              recipeId: recipeId,
+            },
+          });
+        }
+        return null; // Skip if Review Exists
+      })
+    );
+
+    // Filter out any `null` values that were skipped
+    const filteredReviews = reviews.filter((review) => review !== null);
+
+    const reviewIds = filteredReviews.map((review) => review.id);
+
+    // Add Comments.
+    await Promise.all(
+      [...Array(100)].map((_, i) =>
+        prisma.comments.create({
+          data: {
+            comment: faker.lorem.paragraph(2),
+            userId: userIds[Math.floor(Math.random() * userIds.length)],
+            reviewId: reviewIds[Math.floor(Math.random() * reviewIds.length)],
+          },
+        })
+      )
+    );
+
+    // Add RecipeIngredients
+    await Promise.all(
+      [...Array(100)].map(async (_, i) => {
+        const numIngredients = faker.number.int({ min: 5, max: 30 });
+        const recipeId = recipeIds[i];
+        const recipeIngredients = [...Array(numIngredients)].map(() => ({
+          recipeId,
+          ingredientId:
+            ingredientIds[Math.floor(Math.random() * ingredientIds.length)],
+          quantity: faker.number.float({ min: 1, max: 5 }).toFixed(2),
+          unitId: unitIds[Math.floor(Math.random() * unitIds.length)],
+        }));
+
+        // Insert RecipeIngredients
+        await prisma.recipeIngredient.createMany({
+          data: recipeIngredients,
+        });
+      })
+    );
+
+    // // // Add FavoriteRecipes
+    // // await Promise.all(
+    // //   users.map(async (user) => {
+    // //     const numFavorites = faker.number.int({ min: 3, max: 20 });
+    // //     const favoriteRecipes = [...Array(numFavorites)].map(() => ({
+    // //       userId: user.id,
+    // //       recipeId: recipeIds[Math.floor(Math.random() * recipeIds.length)],
+    // //     }));
+
+    // //     // Insert FavoriteRecipes, ensuring uniqueness (no duplicates)
+    // //     await Promise.all(
+    // //       favoriteRecipes.map(async (favorite) => {
+    // //         // Check if the combination of userId and recipeId already exists
+    // //         const existingFavorite = await prisma.favoriteRecipes.findFirst({
+    // //           where: {
+    // //             AND: [
+    // //               { userId: favorite.userId },
+    // //               { recipeId: favorite.recipeId },
+    // //             ],
+    // //           },
+    // //         });
+
+    // //         if (!existingFavorite) {
+    // //           // If no existing favorite, create the new favorite
+    // //           await prisma.favoriteRecipes.create({
+    // //             data: favorite,
+    // //           });
+    // //         }
+    // //       })
+    // //     );
+    //   })
     // );
 
     console.log("Database is seeded.");

@@ -34,7 +34,7 @@ Installation
 
 1. Clone the repo
    ```sh
-   git clone git@github.com:CLSnapp/Backend_Capstone.git
+   git clone git@github.com:CLSnapp/RACipeHub_Backend.git
    ```
 2. Install NPM packages
    ```sh
